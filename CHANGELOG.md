@@ -1,3 +1,6 @@
+## 1.9.0
+* 🛠️ Fix web fullscreen playback on enter/exit: preserve play/pause state and resume stream on web. Avoids stall requiring manual pause/play.
+
 ## 1.8.0
 * Upgrade `video_player` to version `2.9.0`.
 * Add support for custom download quality.
