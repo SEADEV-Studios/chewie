@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:chewie/src/chewie_progress_colors.dart';
+import 'package:chewie/src/helpers/fullscreen_controller.dart';
 import 'package:chewie/src/models/option_item.dart';
 import 'package:chewie/src/models/options_translation.dart';
 import 'package:chewie/src/models/subtitle_model.dart';
@@ -139,7 +140,9 @@ class ChewieState extends State<Chewie> {
       ),
     );
 
-    if (kIsWeb && !_resumeAppliedInFullScreen) {
+    if (kIsWeb &&
+        !_resumeAppliedInFullScreen &&
+        !widget.controller.useNativeWebFullscreen) {
       _resumeAppliedInFullScreen = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
@@ -189,7 +192,7 @@ class ChewieState extends State<Chewie> {
 
     final wasPlaying = widget.controller.videoPlayerController.value.isPlaying;
 
-    if (kIsWeb) {
+    if (kIsWeb && !widget.controller.useNativeWebFullscreen) {
       await _reInitializeControllers(wasPlaying);
     }
 
@@ -335,12 +338,15 @@ class ChewieController extends ChangeNotifier {
     this.hideControlsTimer = defaultHideControlsTimer,
     this.controlsSafeAreaMinimum = EdgeInsets.zero,
     this.pauseOnBackgroundTap = false,
-  }) : assert(
-         playbackSpeeds.every((speed) => speed > 0),
-         'The playbackSpeeds values must all be greater than 0',
-       ) {
+    this.useNativeWebFullscreen = true,
+  })  : assert(
+          playbackSpeeds.every((speed) => speed > 0),
+          'The playbackSpeeds values must all be greater than 0',
+        ),
+        textureId = _textureCounter++ {
     _initialize();
   }
+  static int _textureCounter = 1;
 
   ChewieController copyWith({
     VideoPlayerController? videoPlayerController,
@@ -394,6 +400,7 @@ class ChewieController extends ChangeNotifier {
     )?
     routePageBuilder,
     bool? pauseOnBackgroundTap,
+    bool? useNativeWebFullscreen,
   }) {
     return ChewieController(
       draggableProgressBar: draggableProgressBar ?? this.draggableProgressBar,
@@ -458,6 +465,8 @@ class ChewieController extends ChangeNotifier {
       progressIndicatorDelay:
           progressIndicatorDelay ?? this.progressIndicatorDelay,
       pauseOnBackgroundTap: pauseOnBackgroundTap ?? this.pauseOnBackgroundTap,
+      useNativeWebFullscreen:
+          useNativeWebFullscreen ?? this.useNativeWebFullscreen,
     );
   }
 
@@ -504,6 +513,9 @@ class ChewieController extends ChangeNotifier {
 
   /// The controller for the video you want to play
   final VideoPlayerController videoPlayerController;
+
+  /// The texture ID of the video player.
+  final int textureId;
 
   /// Initialize the Video on Startup. This will prep the video for playback.
   final bool autoInitialize;
@@ -630,6 +642,11 @@ class ChewieController extends ChangeNotifier {
   /// Defines if the player should pause when the background is tapped
   final bool pauseOnBackgroundTap;
 
+  /// Defines if native web fullscreen should be used.
+  ///
+  /// Default is `true`.
+  final bool useNativeWebFullscreen;
+
   static ChewieController of(BuildContext context) {
     final chewieControllerProvider = context
         .dependOnInheritedWidgetOfExactType<ChewieControllerProvider>()!;
@@ -685,7 +702,13 @@ class ChewieController extends ChangeNotifier {
     notifyListeners();
   }
 
+  final FullscreenController _fullscreenController = FullscreenController();
+
   void toggleFullScreen() {
+    if (kIsWeb && useNativeWebFullscreen) {
+      _fullscreenController.toggleFullscreen(textureId);
+      return;
+    }
     _isFullScreen = !_isFullScreen;
     notifyListeners();
   }

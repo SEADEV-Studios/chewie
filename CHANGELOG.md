@@ -1,3 +1,6 @@
+## 1.10.0
+* Added an option to use the native fullscreen of the webbrowser.
+
 ## 1.9.0
 * 🛠️ Fix web fullscreen playback on enter/exit: preserve play/pause state and resume stream on web. Avoids stall requiring manual pause/play.
 
